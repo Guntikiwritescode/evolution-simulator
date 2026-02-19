@@ -6,10 +6,10 @@ export interface ChartDataPoint {
   generation: number;
   etMean: number;
   etLower: number;
-  etUpper: number;
+  etBand: number;
   gsMean: number;
   gsLower: number;
-  gsUpper: number;
+  gsBand: number;
 }
 
 function getMetricOverGenerations(
@@ -37,8 +37,10 @@ export function computeChartData(
   const etByGen = getMetricOverGenerations(etRuns, phase, extractor);
   const gsByGen = getMetricOverGenerations(gsRuns, phase, extractor);
 
-  const allGens = new Set([...etByGen.keys(), ...gsByGen.keys()]);
-  const sorted = [...allGens].sort((a, b) => a - b);
+  const allGens = new Set<number>();
+  for (const k of etByGen.keys()) allGens.add(k);
+  for (const k of gsByGen.keys()) allGens.add(k);
+  const sorted = Array.from(allGens).sort((a, b) => a - b);
 
   return sorted.map(gen => {
     const etStats = descriptiveStats(etByGen.get(gen) || []);
@@ -47,10 +49,10 @@ export function computeChartData(
       generation: gen,
       etMean: etStats.mean,
       etLower: etStats.ci95Lower,
-      etUpper: etStats.ci95Upper,
+      etBand: Math.max(0, etStats.ci95Upper - etStats.ci95Lower),
       gsMean: gsStats.mean,
       gsLower: gsStats.ci95Lower,
-      gsUpper: gsStats.ci95Upper,
+      gsBand: Math.max(0, gsStats.ci95Upper - gsStats.ci95Lower),
     };
   });
 }
@@ -95,20 +97,27 @@ export function getTraitEvolutionData(runs: RunResult[]): {
   const allGens = new Map<number, { speed: number[]; size: number[]; sense: number[] }>();
 
   for (const run of runs) {
-    const all = [...run.trainingMetrics, ...run.transferMetrics.map((m, i) => ({
-      ...m,
-      generation: run.trainingMetrics.length + i,
-    }))];
-    for (const m of all) {
+    for (const m of run.trainingMetrics) {
       if (!allGens.has(m.generation)) allGens.set(m.generation, { speed: [], size: [], sense: [] });
       const g = allGens.get(m.generation)!;
       g.speed.push(m.meanSpeed);
       g.size.push(m.meanSize);
       g.sense.push(m.meanSenseRange);
     }
+
+    const trainLen = run.trainingMetrics.length;
+    for (let i = 0; i < run.transferMetrics.length; i++) {
+      const m = run.transferMetrics[i];
+      const gen = trainLen + i;
+      if (!allGens.has(gen)) allGens.set(gen, { speed: [], size: [], sense: [] });
+      const g = allGens.get(gen)!;
+      g.speed.push(m.meanSpeed);
+      g.size.push(m.meanSize);
+      g.sense.push(m.meanSenseRange);
+    }
   }
 
-  return [...allGens.entries()]
+  return Array.from(allGens.entries())
     .sort(([a], [b]) => a - b)
     .map(([gen, data]) => ({
       generation: gen,

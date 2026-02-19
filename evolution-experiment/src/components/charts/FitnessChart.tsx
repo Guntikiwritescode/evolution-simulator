@@ -1,6 +1,6 @@
 'use client';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Area, Legend, ComposedChart,
 } from 'recharts';
 import type { ChartDataPoint } from '../../lib/experiment/analysis';
@@ -30,14 +30,27 @@ export default function FitnessChart({ data, title, yLabel = 'Mean Food Eaten / 
           <Tooltip
             contentStyle={{ background: '#111', border: '1px solid #1a1a1a', borderRadius: 6, fontSize: 12, fontFamily: 'IBM Plex Mono' }}
             labelStyle={{ color: '#a3a3a3' }}
+            formatter={(value: number, name: string) => {
+              if (name.includes('Band') || name.includes('Lower')) return [null, null];
+              return [value.toFixed(3), name];
+            }}
           />
-          <Legend wrapperStyle={{ fontSize: 12, fontFamily: 'IBM Plex Sans' }} />
-          <Area dataKey="etUpper" stroke="none" fill="#0072B2" fillOpacity={0} stackId="et" />
-          <Area dataKey="etLower" stroke="none" fill="#0072B2" fillOpacity={0.12} stackId="et" />
-          <Area dataKey="gsUpper" stroke="none" fill="#E69F00" fillOpacity={0} stackId="gs" />
-          <Area dataKey="gsLower" stroke="none" fill="#E69F00" fillOpacity={0.12} stackId="gs" />
-          <Line type="monotone" dataKey="etMean" name="ET (Evolutionary)" stroke="#0072B2" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="gsMean" name="GS (Grid Search)" stroke="#E69F00" strokeWidth={2} dot={false} />
+          <Legend
+            wrapperStyle={{ fontSize: 12, fontFamily: 'IBM Plex Sans' }}
+            payload={[
+              { value: 'ET (Evolutionary)', type: 'line', color: '#0072B2' },
+              { value: 'GS (Grid Search)', type: 'line', color: '#E69F00' },
+            ]}
+          />
+          {/* ET CI band */}
+          <Area type="monotone" dataKey="etLower" stackId="etCI" stroke="none" fill="transparent" />
+          <Area type="monotone" dataKey="etBand" stackId="etCI" stroke="none" fill="#0072B2" fillOpacity={0.12} />
+          {/* GS CI band */}
+          <Area type="monotone" dataKey="gsLower" stackId="gsCI" stroke="none" fill="transparent" />
+          <Area type="monotone" dataKey="gsBand" stackId="gsCI" stroke="none" fill="#E69F00" fillOpacity={0.12} />
+          {/* Mean lines on top */}
+          <Line type="monotone" dataKey="etMean" name="ET" stroke="#0072B2" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="gsMean" name="GS" stroke="#E69F00" strokeWidth={2} dot={false} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>

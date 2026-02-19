@@ -1,6 +1,6 @@
 'use client';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, ComposedChart, Area,
 } from 'recharts';
 import type { ChartDataPoint } from '../../lib/experiment/analysis';
@@ -28,12 +28,22 @@ export default function PopulationChart({ data, title }: PopulationChartProps) {
           />
           <Tooltip
             contentStyle={{ background: '#111', border: '1px solid #1a1a1a', borderRadius: 6, fontSize: 12, fontFamily: 'IBM Plex Mono' }}
+            formatter={(value: number, name: string) => {
+              if (name.includes('Band') || name.includes('Lower')) return [null, null];
+              return [value.toFixed(1), name];
+            }}
           />
-          <Legend wrapperStyle={{ fontSize: 12, fontFamily: 'IBM Plex Sans' }} />
-          <Area dataKey="etUpper" stroke="none" fill="#0072B2" fillOpacity={0} stackId="et" />
-          <Area dataKey="etLower" stroke="none" fill="#0072B2" fillOpacity={0.12} stackId="et" />
-          <Area dataKey="gsUpper" stroke="none" fill="#E69F00" fillOpacity={0} stackId="gs" />
-          <Area dataKey="gsLower" stroke="none" fill="#E69F00" fillOpacity={0.12} stackId="gs" />
+          <Legend
+            wrapperStyle={{ fontSize: 12, fontFamily: 'IBM Plex Sans' }}
+            payload={[
+              { value: 'ET', type: 'line', color: '#0072B2' },
+              { value: 'GS', type: 'line', color: '#E69F00' },
+            ]}
+          />
+          <Area type="monotone" dataKey="etLower" stackId="etCI" stroke="none" fill="transparent" />
+          <Area type="monotone" dataKey="etBand" stackId="etCI" stroke="none" fill="#0072B2" fillOpacity={0.12} />
+          <Area type="monotone" dataKey="gsLower" stackId="gsCI" stroke="none" fill="transparent" />
+          <Area type="monotone" dataKey="gsBand" stackId="gsCI" stroke="none" fill="#E69F00" fillOpacity={0.12} />
           <Line type="monotone" dataKey="etMean" name="ET" stroke="#0072B2" strokeWidth={2} dot={false} />
           <Line type="monotone" dataKey="gsMean" name="GS" stroke="#E69F00" strokeWidth={2} dot={false} />
         </ComposedChart>

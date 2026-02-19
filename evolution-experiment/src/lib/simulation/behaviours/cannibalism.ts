@@ -13,16 +13,23 @@ import { vecSub, vecAdd, rotateVector } from '../math';
 export class CannibalismBehaviour implements StepBehaviour {
   constructor(public sizeRatio: number = 0.8) {}
 
+  /**
+   * Faithfully replicates the Rust `for_pred_prey_pair` iteration pattern.
+   * For each i from 1..n, the creature at index i-1 is paired with
+   * creatures at indices i..n-1. The outer loop skips if creatures[i]
+   * is not active (matching Rust `split_at_mut` behavior).
+   */
   private forPredPreyPair(
     creatures: Creature[],
     func: (predator: Creature, prey: Creature) => void,
   ): void {
     for (let i = 1; i < creatures.length; i++) {
       if (!isActive(creatures[i])) continue;
-      for (let j = 0; j < i; j++) {
-        const a = creatures[j];
-        const b = creatures[i];
-        if (!isActive(a) || !isActive(b)) continue;
+
+      for (let j = i; j < creatures.length; j++) {
+        if (!isActive(creatures[j])) continue;
+        const a = creatures[i - 1];
+        const b = creatures[j];
 
         let predator: Creature;
         let prey: Creature;
