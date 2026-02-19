@@ -1,0 +1,5 @@
+{
+  "installCommand": "cd evolution-experiment && npm install",
+  "buildCommand": "cd evolution-experiment && npm run build",
+  "outputDirectory": "evolution-experiment/out"
+}
