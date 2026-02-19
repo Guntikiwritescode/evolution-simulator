@@ -30,9 +30,10 @@ export default function FitnessChart({ data, title, yLabel = 'Mean Food Eaten / 
           <Tooltip
             contentStyle={{ background: '#111', border: '1px solid #1a1a1a', borderRadius: 6, fontSize: 12, fontFamily: 'IBM Plex Mono' }}
             labelStyle={{ color: '#a3a3a3' }}
+            itemStyle={{ padding: 0 }}
             formatter={(value: number, name: string) => {
-              if (name.includes('Band') || name.includes('Lower')) return [null, null];
-              return [value.toFixed(3), name];
+              if (name === 'etLower' || name === 'etBand' || name === 'gsLower' || name === 'gsBand') return undefined as any;
+              return [typeof value === 'number' ? value.toFixed(3) : value, name];
             }}
           />
           <Legend

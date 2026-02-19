@@ -6,12 +6,14 @@ import ExperimentRunner from '../components/ExperimentRunner';
 import ResultsDashboard from '../components/ResultsDashboard';
 import DataExport from '../components/DataExport';
 import MethodologyNotes from '../components/MethodologyNotes';
+import DebugPanel from '../components/DebugPanel';
 
 function PageContent() {
   const { state } = useExperimentContext();
 
   return (
     <main className="min-h-screen">
+      <DebugPanel />
       <Header />
       <div className="border-t border-bg-tertiary" />
       <Methodology />
