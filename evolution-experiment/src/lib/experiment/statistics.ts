@@ -1,6 +1,7 @@
 export interface DescriptiveStats {
   mean: number;
   sd: number;
+  median: number;
   ci95Lower: number;
   ci95Upper: number;
   n: number;
@@ -10,6 +11,7 @@ export interface TTestResult {
   t: number;
   df: number;
   p: number;
+  pBonferroni: number;
   cohensD: number;
   interpretation: string;
 }
@@ -20,12 +22,22 @@ export interface MannWhitneyResult {
   p: number;
 }
 
+export interface LinearRegressionResult {
+  slope: number;
+  intercept: number;
+  r2: number;
+  slopeP: number;
+}
+
 export interface FullComparisonResult {
   etStats: DescriptiveStats;
   gsStats: DescriptiveStats;
   tTest: TTestResult;
   mannWhitney: MannWhitneyResult;
 }
+
+let _numComparisons = 1;
+export function setNumComparisons(n: number) { _numComparisons = n; }
 
 const T_CRITICAL_TABLE: Record<number, number> = {
   1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571,
@@ -58,16 +70,13 @@ function getTCritical(df: number): number {
 }
 
 function tDistPValue(t: number, df: number): number {
-  // Approximation using regularized incomplete beta function
   const x = df / (df + t * t);
   const a = df / 2;
   const b = 0.5;
-  const ibeta = incompleteBeta(x, a, b);
-  return ibeta;
+  return incompleteBeta(x, a, b);
 }
 
 function incompleteBeta(x: number, a: number, b: number): number {
-  // Lentz's continued fraction for regularized incomplete beta
   if (x <= 0) return 0;
   if (x >= 1) return 1;
 
@@ -97,7 +106,6 @@ function incompleteBeta(x: number, a: number, b: number): number {
 }
 
 function logGamma(z: number): number {
-  // Stirling's series (Lanczos approximation)
   const g = 7;
   const c = [
     0.99999999999980993, 676.5203681218851, -1259.1392167224028,
@@ -116,9 +124,26 @@ function logGamma(z: number): number {
   return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
 }
 
+function normalCdf(z: number): number {
+  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
+  const a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+  const sign = z < 0 ? -1 : 1;
+  const x = Math.abs(z) / Math.sqrt(2);
+  const t = 1.0 / (1.0 + p * x);
+  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+  return 0.5 * (1.0 + sign * y);
+}
+
+function median(data: number[]): number {
+  const sorted = [...data].sort((a, b) => a - b);
+  const n = sorted.length;
+  if (n === 0) return 0;
+  return n % 2 === 0 ? (sorted[n / 2 - 1] + sorted[n / 2]) / 2 : sorted[Math.floor(n / 2)];
+}
+
 export function descriptiveStats(data: number[]): DescriptiveStats {
   const n = data.length;
-  if (n === 0) return { mean: 0, sd: 0, ci95Lower: 0, ci95Upper: 0, n: 0 };
+  if (n === 0) return { mean: 0, sd: 0, median: 0, ci95Lower: 0, ci95Upper: 0, n: 0 };
 
   const mean = data.reduce((a, b) => a + b, 0) / n;
   const variance = n > 1
@@ -127,12 +152,14 @@ export function descriptiveStats(data: number[]): DescriptiveStats {
   const sd = Math.sqrt(variance);
   const tCrit = getTCritical(Math.max(1, n - 1));
   const se = sd / Math.sqrt(n);
-  return { mean, sd, ci95Lower: mean - tCrit * se, ci95Upper: mean + tCrit * se, n };
+  return { mean, sd, median: median(data), ci95Lower: mean - tCrit * se, ci95Upper: mean + tCrit * se, n };
 }
 
 export function welchTTest(a: number[], b: number[]): TTestResult {
   const n1 = a.length;
   const n2 = b.length;
+  if (n1 === 0 || n2 === 0) return { t: 0, df: 1, p: 1, pBonferroni: 1, cohensD: 0, interpretation: 'N/A' };
+
   const m1 = a.reduce((s, v) => s + v, 0) / n1;
   const m2 = b.reduce((s, v) => s + v, 0) / n2;
   const v1 = n1 > 1 ? a.reduce((s, v) => s + (v - m1) ** 2, 0) / (n1 - 1) : 0;
@@ -141,14 +168,13 @@ export function welchTTest(a: number[], b: number[]): TTestResult {
   const se = Math.sqrt(v1 / n1 + v2 / n2);
   const t = se > 0 ? (m1 - m2) / se : 0;
 
-  // Welch-Satterthwaite degrees of freedom
   const num = (v1 / n1 + v2 / n2) ** 2;
   const denom = (v1 / n1) ** 2 / (n1 - 1) + (v2 / n2) ** 2 / (n2 - 1);
   const df = denom > 0 ? num / denom : 1;
 
   const p = tDistPValue(t, df);
+  const pBonf = Math.min(1, p * _numComparisons);
 
-  // Cohen's d
   const pooledVar = ((n1 - 1) * v1 + (n2 - 1) * v2) / (n1 + n2 - 2);
   const pooledSd = Math.sqrt(pooledVar);
   const d = pooledSd > 0 ? (m1 - m2) / pooledSd : 0;
@@ -160,19 +186,20 @@ export function welchTTest(a: number[], b: number[]): TTestResult {
   else if (absD < 0.8) interpretation = 'medium';
   else interpretation = 'large';
 
-  return { t, df, p, cohensD: d, interpretation };
+  return { t, df, p, pBonferroni: pBonf, cohensD: d, interpretation };
 }
 
 export function mannWhitneyU(a: number[], b: number[]): MannWhitneyResult {
   const n1 = a.length;
   const n2 = b.length;
+  if (n1 === 0 || n2 === 0) return { U: 0, z: 0, p: 1 };
+
   const combined: { value: number; group: number }[] = [
     ...a.map(v => ({ value: v, group: 0 })),
     ...b.map(v => ({ value: v, group: 1 })),
   ];
   combined.sort((x, y) => x.value - y.value);
 
-  // Assign ranks (average ties)
   const ranks = new Array(combined.length);
   let i = 0;
   while (i < combined.length) {
@@ -195,22 +222,46 @@ export function mannWhitneyU(a: number[], b: number[]): MannWhitneyResult {
   const mU = (n1 * n2) / 2;
   const sigmaU = Math.sqrt((n1 * n2 * (n1 + n2 + 1)) / 12);
   const z = sigmaU > 0 ? (U - mU) / sigmaU : 0;
-
-  // Two-tailed p via normal approximation
   const p = 2 * normalCdf(-Math.abs(z));
 
   return { U, z, p };
 }
 
-function normalCdf(z: number): number {
-  // Approximation using error function
-  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741;
-  const a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
-  const sign = z < 0 ? -1 : 1;
-  const x = Math.abs(z) / Math.sqrt(2);
-  const t = 1.0 / (1.0 + p * x);
-  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
-  return 0.5 * (1.0 + sign * y);
+export function linearRegression(y: number[]): LinearRegressionResult {
+  const n = y.length;
+  if (n < 2) return { slope: 0, intercept: 0, r2: 0, slopeP: 1 };
+
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  for (let i = 0; i < n; i++) {
+    sumX += i;
+    sumY += y[i];
+    sumXY += i * y[i];
+    sumX2 += i * i;
+  }
+  const meanX = sumX / n;
+  const meanY = sumY / n;
+  const denom = sumX2 - n * meanX * meanX;
+  const slope = denom !== 0 ? (sumXY - n * meanX * meanY) / denom : 0;
+  const intercept = meanY - slope * meanX;
+
+  let ssTot = 0, ssRes = 0;
+  for (let i = 0; i < n; i++) {
+    ssTot += (y[i] - meanY) ** 2;
+    ssRes += (y[i] - (intercept + slope * i)) ** 2;
+  }
+  const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 0;
+
+  const slopeP = n > 2 ? slopePValue(slope, ssRes, denom, n) : 1;
+  return { slope, intercept, r2, slopeP };
+}
+
+function slopePValue(slope: number, ssRes: number, sxx: number, n: number): number {
+  if (n <= 2 || sxx === 0) return 1;
+  const mse = ssRes / (n - 2);
+  const seBeta = Math.sqrt(mse / sxx);
+  if (seBeta === 0) return slope === 0 ? 1 : 0;
+  const tStat = slope / seBeta;
+  return tDistPValue(tStat, n - 2);
 }
 
 export function compareConditions(etValues: number[], gsValues: number[]): FullComparisonResult {

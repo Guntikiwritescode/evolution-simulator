@@ -1,5 +1,5 @@
 export function fmt(n: number, decimals: number = 2): string {
-  if (isNaN(n) || !isFinite(n)) return '—';
+  if (isNaN(n) || !isFinite(n)) return '\u2014';
   return n.toFixed(decimals);
 }
 
@@ -17,5 +17,10 @@ export function significanceStars(p: number): string {
 }
 
 export function fmtMeanSD(mean: number, sd: number): string {
-  return `${fmt(mean)} ± ${fmt(sd)}`;
+  return `${fmt(mean)} \u00B1 ${fmt(sd)}`;
+}
+
+export function fmtSlope(slope: number): string {
+  if (slope > 0) return `+${fmt(slope, 4)}`;
+  return fmt(slope, 4);
 }

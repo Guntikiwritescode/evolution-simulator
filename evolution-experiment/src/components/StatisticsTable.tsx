@@ -15,7 +15,11 @@ interface StatisticsTableProps {
 export default function StatisticsTable({ rows, title = 'Statistical Summary' }: StatisticsTableProps) {
   return (
     <div className="bg-bg-secondary border border-bg-tertiary rounded-lg p-6">
-      <h3 className="font-serif text-base text-text-primary mb-4">{title}</h3>
+      <h3 className="font-serif text-base text-text-primary mb-2">{title}</h3>
+      <p className="text-xs text-text-muted mb-4 font-sans">
+        Welch&apos;s t-test (two-tailed). p<sub>Bonf</sub> = Bonferroni-corrected p-value
+        for {rows.length} simultaneous comparisons. Effect sizes interpreted per Cohen (1988).
+      </p>
       <div className="overflow-x-auto">
         <table className="w-full text-xs font-mono">
           <thead>
@@ -26,8 +30,10 @@ export default function StatisticsTable({ rows, title = 'Statistical Summary' }:
               <th className="text-right py-2 px-2">t</th>
               <th className="text-right py-2 px-2">df</th>
               <th className="text-right py-2 px-2">p</th>
-              <th className="text-right py-2 px-2">Cohen&apos;s d</th>
-              <th className="text-left py-2 pl-2">Interp.</th>
+              <th className="text-right py-2 px-2">p<sub>Bonf</sub></th>
+              <th className="text-right py-2 px-2">d</th>
+              <th className="text-left py-2 pl-2">Effect</th>
+              <th className="text-right py-2 px-2">U</th>
               <th className="text-center py-2 pl-2">Sig.</th>
             </tr>
           </thead>
@@ -44,11 +50,13 @@ export default function StatisticsTable({ rows, title = 'Statistical Summary' }:
                 <td className="text-right py-2 px-2">{fmt(row.result.tTest.t, 3)}</td>
                 <td className="text-right py-2 px-2">{fmt(row.result.tTest.df, 1)}</td>
                 <td className="text-right py-2 px-2">{fmtP(row.result.tTest.p)}</td>
+                <td className="text-right py-2 px-2">{fmtP(row.result.tTest.pBonferroni)}</td>
                 <td className="text-right py-2 px-2">{fmt(row.result.tTest.cohensD, 3)}</td>
                 <td className="text-left py-2 pl-2 text-text-muted">{row.result.tTest.interpretation}</td>
+                <td className="text-right py-2 px-2">{fmt(row.result.mannWhitney.U, 0)}</td>
                 <td className="text-center py-2 pl-2">
-                  <span className={row.result.tTest.p < 0.05 ? 'text-green-400' : 'text-text-muted'}>
-                    {significanceStars(row.result.tTest.p)}
+                  <span className={row.result.tTest.pBonferroni < 0.05 ? 'text-green-400' : 'text-text-muted'}>
+                    {significanceStars(row.result.tTest.pBonferroni)}
                   </span>
                 </td>
               </tr>

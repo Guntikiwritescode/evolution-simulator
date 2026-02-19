@@ -9,6 +9,7 @@ interface DataPoint {
   meanSpeed: number;
   meanSize: number;
   meanSenseRange: number;
+  meanReach: number;
 }
 
 interface TraitEvolutionChartProps {
@@ -47,6 +48,7 @@ export default function TraitEvolutionChart({ data, trainingGens }: TraitEvoluti
           <Line type="monotone" dataKey="meanSpeed" name="Speed" stroke="#0072B2" strokeWidth={2} dot={false} />
           <Line type="monotone" dataKey="meanSize" name="Size" stroke="#E69F00" strokeWidth={2} dot={false} />
           <Line type="monotone" dataKey="meanSenseRange" name="Sense Range" stroke="#009E73" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="meanReach" name="Reach" stroke="#CC79A7" strokeWidth={1.5} dot={false} strokeDasharray="4 2" />
         </ComposedChart>
       </ResponsiveContainer>
     </div>

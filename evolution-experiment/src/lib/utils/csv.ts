@@ -4,10 +4,12 @@ import type { GridSearchEntry } from '../experiment/gridSearch';
 
 export function metricsToCSV(runs: RunResult[], phase: 'training' | 'transfer'): string {
   const headers = [
-    'run', 'seed', 'generation', 'population', 'meanFoodEaten', 'survivalRate',
-    'reproductionRate', 'meanSpeed', 'meanSize', 'meanSenseRange',
-    'speedVariance', 'sizeVariance', 'senseRangeVariance',
-    'traitDiversity', 'creaturesEaten', 'computationSteps',
+    'run', 'seed', 'generation', 'population', 'meanFoodEaten', 'medianFoodEaten',
+    'survivalRate', 'reproductionRate',
+    'meanSpeed', 'meanSize', 'meanSenseRange', 'meanReach', 'meanFleeDistance',
+    'speedVariance', 'sizeVariance', 'senseRangeVariance', 'reachVariance',
+    'traitDiversity', 'shannonDiversity',
+    'creaturesEaten', 'energyEfficiency', 'computationSteps',
   ];
 
   const rows: string[] = [headers.join(',')];
@@ -16,11 +18,12 @@ export function metricsToCSV(runs: RunResult[], phase: 'training' | 'transfer'):
     const metrics = phase === 'training' ? runs[r].trainingMetrics : runs[r].transferMetrics;
     for (const m of metrics) {
       rows.push([
-        r + 1, runs[r].seed, m.generation, m.population, m.meanFoodEaten,
-        m.survivalRate, m.reproductionRate, m.meanSpeed, m.meanSize,
-        m.meanSenseRange, m.speedVariance, m.sizeVariance,
-        m.senseRangeVariance, m.traitDiversity, m.creaturesEaten,
-        m.computationSteps,
+        r + 1, runs[r].seed, m.generation, m.population, m.meanFoodEaten, m.medianFoodEaten,
+        m.survivalRate, m.reproductionRate,
+        m.meanSpeed, m.meanSize, m.meanSenseRange, m.meanReach, m.meanFleeDistance,
+        m.speedVariance, m.sizeVariance, m.senseRangeVariance, m.reachVariance,
+        m.traitDiversity, m.shannonDiversity,
+        m.creaturesEaten, m.energyEfficiency, m.computationSteps,
       ].join(','));
     }
   }

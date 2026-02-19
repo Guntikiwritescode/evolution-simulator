@@ -80,12 +80,12 @@ function createETCreatures(sim: Simulation, count: number): Creature[] {
     const pos = stage.getNearestEdgePoint(rawPos);
     creatures.push(createCreatureWithTraits(
       pos,
-      trait(CREATURE_DEFAULTS.speed, CREATURE_DEFAULTS.variance),
-      trait(CREATURE_DEFAULTS.size, CREATURE_DEFAULTS.variance),
-      trait(CREATURE_DEFAULTS.senseRange, CREATURE_DEFAULTS.variance),
-      trait(CREATURE_DEFAULTS.reach, 0),
-      trait(CREATURE_DEFAULTS.fleeDistance, 0),
-      trait(CREATURE_DEFAULTS.lifeSpan, 0),
+      trait(CREATURE_DEFAULTS.speed, CREATURE_DEFAULTS.speedVariance),
+      trait(CREATURE_DEFAULTS.size, CREATURE_DEFAULTS.sizeVariance),
+      trait(CREATURE_DEFAULTS.senseRange, CREATURE_DEFAULTS.senseRangeVariance),
+      trait(CREATURE_DEFAULTS.reach, CREATURE_DEFAULTS.reachVariance),
+      trait(CREATURE_DEFAULTS.fleeDistance, CREATURE_DEFAULTS.fleeDistanceVariance),
+      trait(CREATURE_DEFAULTS.lifeSpan, CREATURE_DEFAULTS.lifeSpanVariance),
       CREATURE_DEFAULTS.energy,
     ));
   }
