@@ -18,11 +18,13 @@ function isCreatureHungry(c: Creature): boolean {
 function nearestFood(creature: Creature, available: Food[]): Food | null {
   let best: Food | null = null;
   let bestDist = Infinity;
-  for (const f of available) {
-    const d = vecNorm(vecSub(f.position, creature.pos));
-    if (!isNaN(d) && d < bestDist) {
+  for (let i = 0; i < available.length; i++) {
+    const dx = available[i].position[0] - creature.pos[0];
+    const dy = available[i].position[1] - creature.pos[1];
+    const d = dx * dx + dy * dy;
+    if (d < bestDist) {
       bestDist = d;
-      best = f;
+      best = available[i];
     }
   }
   return best;
@@ -32,6 +34,7 @@ export class ScavengeBehaviour implements StepBehaviour {
   apply(phase: Phase, generation: Generation, _sim: Simulation): void {
     if (phase === Phase.ORIENT) {
       const available = generation.getAvailableFood();
+      if (available.length === 0) return;
       for (const c of generation.creatures) {
         if (!isCreatureHungry(c)) continue;
         const food = nearestFood(c, available);
@@ -52,8 +55,10 @@ export class ScavengeBehaviour implements StepBehaviour {
 
     if (phase === Phase.ACT) {
       let available = generation.getAvailableFood();
+      if (available.length === 0) return;
       for (const c of generation.creatures) {
         if (!isCreatureHungry(c)) continue;
+        if (available.length === 0) break;
         const food = nearestFood(c, available);
         if (food && !isFoodEaten(food) && canReach(c, food.position)) {
           eatFood(c, generation.steps, food);

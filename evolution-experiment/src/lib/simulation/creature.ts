@@ -209,7 +209,12 @@ export function applyEnergyCost(c: Creature, cost: number): void {
 
 export function moveTo(c: Creature, pos: Point2): void {
   c.pos = [pos[0], pos[1]];
-  c.movementHistory.push([pos[0], pos[1]]);
+  if (c.movementHistory.length >= 2) {
+    c.movementHistory[0] = c.movementHistory[1];
+    c.movementHistory[1] = [pos[0], pos[1]];
+  } else {
+    c.movementHistory.push([pos[0], pos[1]]);
+  }
   const cost = getMotionEnergyCost(c);
   applyEnergyCost(c, cost);
 }

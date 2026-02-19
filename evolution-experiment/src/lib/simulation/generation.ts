@@ -6,12 +6,14 @@ import type { Point2 } from './math';
 import { Phase } from './behaviours/types';
 import type { Simulation } from './simulation';
 
-const MAX_STEPS = 1_000_000;
+const MAX_STEPS = 10_000;
 
 export class Generation {
   steps: number = 1;
   creatures: Creature[];
   food: Food[];
+  private _availableFoodDirty: boolean = true;
+  private _availableFoodCache: Food[] = [];
 
   constructor(sim: Simulation, creatures: Creature[], foodLocations: Point2[]) {
     this.creatures = creatures;
@@ -26,17 +28,25 @@ export class Generation {
   }
 
   hasActiveCreatures(): boolean {
-    return this.creatures.some(c => isActive(c));
+    for (let i = 0; i < this.creatures.length; i++) {
+      if (isActive(this.creatures[i])) return true;
+    }
+    return false;
   }
 
   getAvailableFood(): Food[] {
-    return this.food.filter(f => !isFoodEaten(f));
+    if (this._availableFoodDirty) {
+      this._availableFoodCache = this.food.filter(f => !isFoodEaten(f));
+      this._availableFoodDirty = false;
+    }
+    return this._availableFoodCache;
   }
 
   markFoodEaten(food: Food): void {
     const idx = this.food.findIndex(f => f.id === food.id);
     if (idx !== -1) {
       this.food[idx].status = { eaten: this.steps };
+      this._availableFoodDirty = true;
     }
   }
 
@@ -57,9 +67,17 @@ export class Generation {
   }
 
   private step(sim: Simulation): void {
-    if (this.steps >= MAX_STEPS) return;
+    if (this.steps >= MAX_STEPS) {
+      for (const c of this.creatures) {
+        if (isActive(c)) {
+          c.state = 'dead';
+        }
+      }
+      return;
+    }
 
     this.shuffleCreatures(sim);
+    this._availableFoodDirty = true;
     this.runPhase(Phase.PRE, sim);
     this.runPhase(Phase.ORIENT, sim);
     this.runPhase(Phase.MOVE, sim);

@@ -13,12 +13,18 @@ import { vecSub, vecAdd, rotateVector } from '../math';
 export class CannibalismBehaviour implements StepBehaviour {
   constructor(public sizeRatio: number = 0.8) {}
 
-  /**
-   * Faithfully replicates the Rust `for_pred_prey_pair` iteration pattern.
-   * For each i from 1..n, the creature at index i-1 is paired with
-   * creatures at indices i..n-1. The outer loop skips if creatures[i]
-   * is not active (matching Rust `split_at_mut` behavior).
-   */
+  private hasSizeVariation(creatures: Creature[]): boolean {
+    let minSize = Infinity;
+    let maxSize = -Infinity;
+    for (const c of creatures) {
+      if (!isActive(c)) continue;
+      const s = getSize(c);
+      if (s < minSize) minSize = s;
+      if (s > maxSize) maxSize = s;
+    }
+    return maxSize * this.sizeRatio >= minSize ? false : true;
+  }
+
   private forPredPreyPair(
     creatures: Creature[],
     func: (predator: Creature, prey: Creature) => void,
@@ -50,6 +56,10 @@ export class CannibalismBehaviour implements StepBehaviour {
   }
 
   apply(phase: Phase, generation: Generation, sim: Simulation): void {
+    if (phase === Phase.ORIENT || phase === Phase.ACT) {
+      if (!this.hasSizeVariation(generation.creatures)) return;
+    }
+
     if (phase === Phase.ORIENT) {
       const targetPreySpeed = new Map<string, number>();
 
